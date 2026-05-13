@@ -8,14 +8,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #1a1a1a; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; }
 .phone {
-  width: 393px;
-  height: 852px;
+  width: 430px;
+  height: 932px;
   background: #f0f0f0;
-  border-radius: 48px;
+  border-radius: 52px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 60px 16px 40px;
-  box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 12px #444, 0 30px 80px rgba(0,0,0,0.6);
+  padding: 72px 20px 48px;
+  box-shadow: 0 0 0 12px #2a2a2a, 0 0 0 14px #444, 0 30px 80px rgba(0,0,0,0.6);
   position: relative;
   scrollbar-width: none;
 }
@@ -285,7 +285,7 @@ function showE(){
     cur.opts.forEach(label=>{
       const sel=picked.has(label);
       const b=document.createElement('button');
-      b.style.cssText='background:'+(sel?'#888':'#EBEBEB')+';border:none;border-radius:10px;padding:5px 10px;font-size:13px;font-weight:700;color:'+(sel?'#fff':'#111')+';cursor:pointer;white-space:nowrap;font-family:inherit;';
+      b.style.cssText='background:'+(sel?'#888':'#EBEBEB')+';border:none;border-radius:10px;padding:5px 10px;font-size:13px;font-weight:700;color:'+(sel?'#fff':'#111')+';cursor:pointer;font-family:inherit;';
       b.textContent=label;
       b.onclick=()=>{
         if(picked.has(label)){picked.delete(label);removeSaved(label);}
