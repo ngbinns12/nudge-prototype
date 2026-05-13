@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feed Nudge — DoorDash Prototype</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; padding: 20px 16px; background: #f0f0f0; }
+
+/* COLLAPSED */
+.cpill { background: #1e2235; border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 10px; }
+.cprev { font-size: 13px; color: #9099b0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cright { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.spark { color: #fff; font-size: 15px; }
+.lbl { font-size: 14px; font-weight: 700; color: #fff; }
+.chev { font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
+
+/* EXPANDED */
+.EX { background: #1e2235; padding: 12px 14px 16px; border-radius: 20px; }
+.HED { font-size: 13px; font-weight: 800; color: #fff; line-height: 1.15; margin-bottom: 10px; }
+.PGRID { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* FREETEXT */
+.FTR { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+.FTR input { flex: 1; background: #30302E; border: none; border-radius: 10px; padding: 5px 10px; font-size: 13px; font-weight: 700; color: #F5F5F3; outline: none; font-family: inherit; }
+.FTR input::placeholder { color: #aaa; }
+.FTR button { background: none; border: none; font-size: 13px; color: #9099b0; cursor: pointer; flex-shrink: 0; padding: 0; line-height: 1; }
+
+/* CTA ROW */
+.CTAR { display: flex; gap: 6px; margin-top: 10px; }
+.BD { flex: 1; background: #111; border: none; border-radius: 50px; padding: 8px; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; font-family: inherit; }
+.BL { flex: 1; background: #EBEBEB; border: none; border-radius: 50px; padding: 8px; font-size: 13px; font-weight: 700; color: #111; cursor: pointer; font-family: inherit; }
+
+/* SKELETON */
+.sk { background: #d4d4d4; border-radius: 6px; }
+.skel-wrap { background: #fff; border-radius: 16px; padding: 14px; }
+.skel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.skel-row { display: flex; gap: 10px; overflow: hidden; }
+.skel-card { flex-shrink: 0; width: 138px; }
+
+/* ANIMATE IN */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { opacity: 0; }
+.fade-in-up.go { animation: fadeInUp 0.4s ease-out forwards; }
+
+/* TOOLTIP */
+.proto-tip {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(0,0,0,0.72); color: #fff;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  padding: 6px 12px; border-radius: 20px;
+  width: fit-content; margin: 0 auto;
+}
+</style>
+</head>
+<body>
+<div id="N"></div>
+<script>
+const MS=[
+  {h:"Tired of your usual?",         opts:["Miso salmon bento box somewhere new","More japanese spots","Not just Goop, more like my favorites","Surprise me"]},
+  {h:"Want to refine to be more..",  opts:["Trendy","Authentic","Organic","Chicken","Any protein","Lighter","Heartier","Rice base"]},
+  {h:"Need it a little more..",      opts:["Cheaper","Lower fees","Faster delivery","Find me a deal","Compare these stores: Souvla, Goop, Ebiko"]}
+];
+const DS=[
+  {h:"What's the occasion?",           opts:["Quick lunch","Dinner at home","Impressing someone","Late night craving"]},
+  {h:"How adventurous are you feeling?",opts:["Play it safe","Slightly adventurous","Surprise me completely"]},
+  {h:"Any dietary needs?",             opts:["None","Vegetarian","Gluten-free","Dairy-free","Low calorie"]}
+];
+
+let mi=0, di=0, deep=false, showSkeleton=false, hidePill=false;
+const saved=[];
+const stepHistory=[];
+const N=()=>document.getElementById('N');
+
+function removeSaved(v){const i=saved.indexOf(v);if(i>-1)saved.splice(i,1);}
+
+function prevText(){
+  const s=deep?DS:MS, i=deep?di:mi;
+  return i<s.length ? s[i].h : "Feed customized";
+}
+
+/* ── SKELETON CAROUSEL ─────────────────────────────── */
+function buildSkeleton(titleW){
+  titleW=titleW||150;
+  const wrap=document.createElement('div');wrap.className='skel-wrap';
+  const hdr=document.createElement('div');hdr.className='skel-header';
+  const t=document.createElement('div');t.className='sk';t.style.cssText='height:13px;width:'+titleW+'px;';
+  const a=document.createElement('div');a.className='sk';a.style.cssText='height:13px;width:22px;border-radius:50%;';
+  hdr.appendChild(t);hdr.appendChild(a);wrap.appendChild(hdr);
+  const row=document.createElement('div');row.className='skel-row';
+  for(let i=0;i<3;i++){
+    const card=document.createElement('div');card.className='skel-card';
+    const img=document.createElement('div');img.className='sk';
+    img.style.cssText='width:138px;height:88px;border-radius:10px;margin-bottom:7px;';
+    const nm=document.createElement('div');nm.className='sk';
+    nm.style.cssText='height:11px;width:'+(90+i*10)+'px;margin-bottom:5px;';
+    const inf=document.createElement('div');inf.className='sk';
+    inf.style.cssText='height:10px;width:70px;';
+    card.appendChild(img);card.appendChild(nm);card.appendChild(inf);
+    row.appendChild(card);
+  }
+  wrap.appendChild(row);
+  return wrap;
+}
+
+/* ── COLLAPSED STATE ───────────────────────────────── */
+function showC(){
+  N().innerHTML='';
+  const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;gap:6px;';
+
+  if(!showSkeleton){
+    // saved picks above pill
+    if(saved.length){
+      const sr=document.createElement('div');sr.style.cssText='display:flex;flex-wrap:wrap;gap:4px;';
+      saved.forEach(s=>{
+        const c=document.createElement('span');
+        c.style.cssText='display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;padding:3px 6px 3px 8px;border-radius:12px;background:#444;color:#fff;';
+        c.innerHTML='<span>'+s+'</span>';
+        const x=document.createElement('button');x.textContent='×';
+        x.style.cssText='background:none;border:none;color:#fff;font-size:10px;cursor:pointer;padding:0;line-height:1;opacity:0.7;';
+        x.onclick=e=>{e.stopPropagation();removeSaved(s);showC();};
+        c.appendChild(x);sr.appendChild(c);
+      });
+      wrap.appendChild(sr);
+    }
+
+    // collapsed pill
+    const d=document.createElement('div');d.className='cpill';
+    d.innerHTML='<span class="cprev">'+prevText()+'</span><div class="cright"><span class="spark">&#10022;</span><span class="lbl">Customize</span><span class="chev">&nbsp;&or;</span></div>';
+    d.onclick=()=>showE();
+    wrap.appendChild(d);
+  }
+
+  if(showSkeleton){
+    // 3 skeleton carousels with varied title bar widths
+    [160, 118, 144].forEach(w=>{
+      const s=buildSkeleton(w);
+      s.style.marginTop='10px';
+      wrap.appendChild(s);
+    });
+
+    // tooltip + pill — hidden, animate in after delay
+    const bottom=document.createElement('div');
+    bottom.id='BOTTOM';
+    bottom.style.cssText='display:flex;flex-direction:column;gap:8px;margin-top:14px;';
+
+    const tip=document.createElement('div');
+    tip.className='proto-tip fade-in-up';
+    tip.innerHTML='&#128070; Consumer takes a few actions';
+    bottom.appendChild(tip);
+
+    const pillWrap=document.createElement('div');
+    pillWrap.className='fade-in-up';
+    pillWrap.style.cssText='display:flex;flex-direction:column;gap:6px;';
+
+    // pre-selected picks with x buttons
+    if(saved.length){
+      const sr=document.createElement('div');sr.style.cssText='display:flex;flex-wrap:wrap;gap:4px;';
+      saved.forEach(s=>{
+        const c=document.createElement('span');
+        c.style.cssText='display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;padding:3px 6px 3px 8px;border-radius:12px;background:#444;color:#fff;';
+        c.innerHTML='<span>'+s+'</span>';
+        const x=document.createElement('button');x.textContent='×';
+        x.style.cssText='background:none;border:none;color:#fff;font-size:10px;cursor:pointer;padding:0;line-height:1;opacity:0.7;';
+        x.onclick=e=>{e.stopPropagation();removeSaved(s);showC();};
+        c.appendChild(x);sr.appendChild(c);
+      });
+      pillWrap.appendChild(sr);
+    }
+
+    const p=document.createElement('div');p.className='cpill';
+    p.innerHTML='<span class="cprev">'+prevText()+'</span><div class="cright"><span class="spark">&#10022;</span><span class="lbl">Customize</span><span class="chev">&nbsp;&or;</span></div>';
+    p.onclick=()=>showE();
+    pillWrap.appendChild(p);
+    bottom.appendChild(pillWrap);
+
+    const skipAnim=hidePill;
+    hidePill=false;
+
+    if(skipAnim){
+      // return from dive deep — show pill immediately, no tooltip, no animation
+      pillWrap.classList.remove('fade-in-up');
+      pillWrap.style.opacity='1';
+      wrap.appendChild(pillWrap);
+    } else {
+      wrap.appendChild(bottom);
+      setTimeout(()=>tip.classList.add('go'), 700);
+      setTimeout(()=>pillWrap.classList.add('go'), 1050);
+    }
+
+    N().appendChild(wrap);
+    return;
+  }
+
+  N().appendChild(wrap);
+}
+
+/* ── EXPANDED STATE ────────────────────────────────── */
+function showE(){
+  const steps=deep?DS:MS;
+  const idx=deep?di:mi;
+  if(idx>=steps.length){showDone();return;}
+
+  const btm=showSkeleton&&document.getElementById('BOTTOM');
+  if(btm){btm.innerHTML='';}else{N().innerHTML='';}
+  const root=btm||N();
+  const box=document.createElement('div');box.className='EX';root.appendChild(box);
+  const cur=steps[idx];
+  const picked=new Set(saved.filter(s=>cur.opts.includes(s)));
+
+  // collapse bar
+  const topbar=document.createElement('div');
+  topbar.style.cssText='display:flex;justify-content:flex-end;margin-bottom:6px;cursor:pointer;';
+  topbar.innerHTML='<span style="font-size:13px;color:#9099b0;">&#10022; Customize &#8743;</span>';
+  topbar.onclick=()=>{if(deep)di++;else mi++;showC();};
+  box.appendChild(topbar);
+
+  // history chips from previous steps
+  if(stepHistory.length){
+    const hr=document.createElement('div');
+    hr.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;';
+    function renderHistoryChips(){
+      hr.innerHTML='';
+      stepHistory.forEach(step=>{
+        step.picks.forEach(s=>{
+          const c=document.createElement('span');
+          c.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 6px 3px 9px;border-radius:20px;background:#2a3a5c;color:#8aabdb;';
+          c.innerHTML='<span>'+s+'</span>';
+          const x=document.createElement('button');x.textContent='×';
+          x.style.cssText='background:none;border:none;color:#8aabdb;font-size:11px;cursor:pointer;padding:0;line-height:1;opacity:0.8;';
+          x.onclick=()=>{removeSaved(s);step.picks.splice(step.picks.indexOf(s),1);renderHistoryChips();};
+          c.appendChild(x);hr.appendChild(c);
+        });
+      });
+    }
+    renderHistoryChips();
+    box.appendChild(hr);
+  }
+
+  // question headline
+  const h=document.createElement('p');h.className='HED';h.textContent=cur.h;box.appendChild(h);
+
+  // answer pills
+  const pw=document.createElement('div');pw.className='PGRID';box.appendChild(pw);
+  function renderPills(){
+    pw.innerHTML='';
+    cur.opts.forEach(label=>{
+      const sel=picked.has(label);
+      const b=document.createElement('button');
+      b.style.cssText='background:'+(sel?'#888':'#EBEBEB')+';border:none;border-radius:10px;padding:5px 10px;font-size:13px;font-weight:700;color:'+(sel?'#fff':'#111')+';cursor:pointer;white-space:nowrap;font-family:inherit;';
+      b.textContent=label;
+      b.onclick=()=>{
+        if(picked.has(label)){picked.delete(label);removeSaved(label);}
+        else{picked.add(label);if(!saved.includes(label))saved.push(label);}
+        renderPills();
+      };
+      pw.appendChild(b);
+    });
+  }
+  renderPills();
+
+  // freetext
+  const ftr=document.createElement('div');ftr.className='FTR';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='Ask in your own words...';
+  const btn=document.createElement('button');btn.textContent='↑';
+  const go=()=>{
+    const v=inp.value.trim();
+    if(v){
+      if(!saved.includes(v))saved.push(v);
+      snapAndCollapse([...picked]);
+    }
+  };
+  btn.onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();};
+  ftr.appendChild(inp);ftr.appendChild(btn);box.appendChild(ftr);
+
+  // CTAs — on every question
+  const cr=document.createElement('div');cr.className='CTAR';
+
+  const cf=document.createElement('button');cf.className='BD';cf.textContent='Customize feed';
+  cf.onclick=()=>snapAndCollapse([...picked]);
+
+  const dd=document.createElement('button');dd.className='BL';dd.textContent='Dive deep';
+  dd.onclick=()=>{
+    const picks=[...picked];
+    if(picks.length) stepHistory.push({picks});
+    picks.forEach(p=>{if(!saved.includes(p))saved.push(p);});
+    showDiveDeep();
+  };
+
+  cr.appendChild(cf);cr.appendChild(dd);box.appendChild(cr);
+}
+
+function snapAndCollapse(picks){
+  if(picks.length) stepHistory.push({picks});
+  picks.forEach(p=>{if(!saved.includes(p))saved.push(p);});
+  if(deep) di++; else mi++;
+  showSkeleton=true;
+  showC();
+}
+
+/* ── DIVE DEEP — AI Assistant Wireframe ────────────── */
+function showDiveDeep(){
+  N().innerHTML='';
+
+  const outer=document.createElement('div');
+  outer.style.cssText='display:flex;flex-direction:column;gap:0;background:#fff;border-radius:20px;overflow:hidden;';
+
+  // ── Header ──────────────────────────────────────────
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #ececec;';
+  // back arrow + title
+  const left=document.createElement('div');left.style.cssText='display:flex;align-items:center;gap:10px;';
+  const back=document.createElement('div');back.className='sk';back.style.cssText='width:18px;height:18px;border-radius:50%;';
+  const titleBar=document.createElement('div');titleBar.className='sk';titleBar.style.cssText='height:13px;width:80px;';
+  left.appendChild(back);left.appendChild(titleBar);
+  // right icon
+  const ico=document.createElement('div');ico.className='sk';ico.style.cssText='width:28px;height:28px;border-radius:50%;';
+  hdr.appendChild(left);hdr.appendChild(ico);
+  outer.appendChild(hdr);
+
+  // ── Carried-over selections ──────────────────────────
+  if(saved.length){
+    const pillRow=document.createElement('div');
+    pillRow.style.cssText='display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;border-bottom:1px solid #ececec;';
+    function renderCarriedPills(){
+      pillRow.innerHTML='';
+      [...saved].forEach(s=>{
+        const c=document.createElement('span');
+        c.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 6px 3px 9px;border-radius:20px;background:#2a3a5c;color:#8aabdb;';
+        c.innerHTML='<span>'+s+'</span>';
+        const x=document.createElement('button');x.textContent='×';
+        x.style.cssText='background:none;border:none;color:#8aabdb;font-size:11px;cursor:pointer;padding:0;line-height:1;opacity:0.8;';
+        x.onclick=()=>{removeSaved(s);renderCarriedPills();};
+        c.appendChild(x);pillRow.appendChild(c);
+      });
+      if(!pillRow.children.length) pillRow.remove();
+    }
+    renderCarriedPills();
+    outer.appendChild(pillRow);
+  }
+
+  // ── Chat area ────────────────────────────────────────
+  const chat=document.createElement('div');
+  chat.style.cssText='padding:16px;display:flex;flex-direction:column;gap:10px;';
+
+  // AI bubble
+  const ai1=document.createElement('div');ai1.style.cssText='display:flex;flex-direction:column;gap:5px;align-items:flex-start;max-width:75%;';
+  const ai1a=document.createElement('div');ai1a.className='sk';ai1a.style.cssText='height:12px;width:220px;border-radius:8px;';
+  const ai1b=document.createElement('div');ai1b.className='sk';ai1b.style.cssText='height:12px;width:170px;border-radius:8px;';
+  ai1.appendChild(ai1a);ai1.appendChild(ai1b);chat.appendChild(ai1);
+
+  // User bubble (right aligned)
+  const usr=document.createElement('div');usr.style.cssText='align-self:flex-end;display:flex;flex-direction:column;gap:5px;align-items:flex-end;max-width:60%;';
+  const usra=document.createElement('div');usra.style.cssText='background:#d4d4d4;height:32px;width:160px;border-radius:16px;';
+  usr.appendChild(usra);chat.appendChild(usr);
+
+  // AI bubble 2 (longer, simulating a response)
+  const ai2=document.createElement('div');ai2.style.cssText='display:flex;flex-direction:column;gap:5px;align-items:flex-start;max-width:75%;';
+  [200,240,150].forEach(w=>{
+    const l=document.createElement('div');l.className='sk';l.style.cssText='height:12px;width:'+w+'px;border-radius:8px;';
+    ai2.appendChild(l);
+  });
+  chat.appendChild(ai2);
+  outer.appendChild(chat);
+
+  // ── Store results ────────────────────────────────────
+  const results=document.createElement('div');
+  results.style.cssText='padding:0 16px 4px;display:flex;flex-direction:column;gap:10px;border-top:1px solid #ececec;padding-top:14px;';
+
+  // label bar
+  const lbl=document.createElement('div');lbl.className='sk';lbl.style.cssText='height:12px;width:120px;border-radius:6px;margin-bottom:4px;';
+  results.appendChild(lbl);
+
+  [130,110,140].forEach(nw=>{
+    const card=document.createElement('div');
+    card.style.cssText='display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid #f2f2f2;';
+    // image
+    const img=document.createElement('div');img.className='sk';img.style.cssText='width:56px;height:56px;border-radius:10px;flex-shrink:0;';
+    // text stack
+    const txt=document.createElement('div');txt.style.cssText='display:flex;flex-direction:column;gap:5px;flex:1;';
+    const n=document.createElement('div');n.className='sk';n.style.cssText='height:12px;width:'+nw+'px;border-radius:5px;';
+    const r=document.createElement('div');r.className='sk';r.style.cssText='height:10px;width:90px;border-radius:5px;';
+    const t=document.createElement('div');t.className='sk';t.style.cssText='height:10px;width:70px;border-radius:5px;';
+    txt.appendChild(n);txt.appendChild(r);txt.appendChild(t);
+    card.appendChild(img);card.appendChild(txt);
+    results.appendChild(card);
+  });
+  outer.appendChild(results);
+
+  // ── Search bar ───────────────────────────────────────
+  const searchRow=document.createElement('div');
+  searchRow.style.cssText='display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid #ececec;';
+  const searchBar=document.createElement('div');searchBar.className='sk';searchBar.style.cssText='flex:1;height:38px;border-radius:20px;background:#e8e8e8;';
+  const sendBtn=document.createElement('div');sendBtn.className='sk';sendBtn.style.cssText='width:38px;height:38px;border-radius:50%;flex-shrink:0;';
+  searchRow.appendChild(searchBar);searchRow.appendChild(sendBtn);
+  outer.appendChild(searchRow);
+
+  // back link — top of page
+  const backBtn=document.createElement('button');
+  backBtn.style.cssText='display:block;margin-bottom:10px;background:none;border:none;font-size:13px;font-weight:600;color:#555;cursor:pointer;font-family:inherit;padding:0;';
+  backBtn.textContent='← Back to feed';
+  backBtn.onclick=()=>{showSkeleton=true;hidePill=true;showC();};
+  N().appendChild(backBtn);
+
+  N().appendChild(outer);
+}
+
+/* ── DONE ──────────────────────────────────────────── */
+function showDone(){
+  N().innerHTML='';
+  const box=document.createElement('div');box.className='EX';N().appendChild(box);
+  box.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">'+
+    saved.map(s=>'<span style="display:inline-flex;align-items:center;font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px;background:#444;color:#fff;">'+s+'</span>').join('')+
+    '</div><p style="font-size:13px;font-weight:800;color:#fff;margin-bottom:6px;">Feed updated.</p>'+
+    '<p style="font-size:13px;color:#9099b0;margin-bottom:20px;">Your picks are saved.</p>';
+  const cb=document.createElement('button');
+  cb.style.cssText='background:#EBEBEB;border:none;border-radius:50px;padding:12px 24px;font-size:13px;font-weight:700;color:#111;cursor:pointer;font-family:inherit;';
+  cb.textContent='Collapse';cb.onclick=()=>showC();
+  box.appendChild(cb);
+}
+
+showC();
+</script>
+</body>
+</html>
