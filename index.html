@@ -6,7 +6,33 @@
 <title>Feed Nudge — DoorDash Prototype</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; padding: 20px 16px; background: #f0f0f0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #1a1a1a; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; }
+.phone {
+  width: 393px;
+  height: 852px;
+  background: #f0f0f0;
+  border-radius: 48px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 60px 16px 40px;
+  box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 12px #444, 0 30px 80px rgba(0,0,0,0.6);
+  position: relative;
+  scrollbar-width: none;
+}
+.phone::-webkit-scrollbar { display: none; }
+/* notch */
+.phone::before {
+  content: '';
+  position: sticky;
+  top: -60px;
+  display: block;
+  width: 120px;
+  height: 34px;
+  background: #2a2a2a;
+  border-radius: 0 0 20px 20px;
+  margin: -60px auto 20px;
+  z-index: 10;
+}
 
 /* COLLAPSED */
 .cpill { background: #1e2235; border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 10px; }
@@ -58,7 +84,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 </style>
 </head>
 <body>
-<div id="N"></div>
+<div class="phone"><div id="N"></div></div>
 <script>
 const MS=[
   {h:"Tired of your usual?",         opts:["Miso salmon bento box somewhere new","More japanese spots","Not just Goop, more like my favorites","Surprise me"]},
