@@ -62,8 +62,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 <script>
 const MS=[
   {h:"Tired of your usual?",         opts:["Miso salmon bento box somewhere new","More japanese spots","Not just Goop, more like my favorites","Surprise me"]},
-  {h:"Want to refine to be more..",  opts:["Trendy","Authentic","Organic","Chicken","Any protein","Lighter","Heartier","Rice base"]},
-  {h:"Need it a little more..",      opts:["Cheaper","Lower fees","Faster delivery","Find me a deal","Compare these stores: Souvla, Goop, Ebiko"]}
+  {h:"Want it trendier?",  opts:["Trendy","Authentic","Organic","Chicken","Any protein","Lighter","Heartier","Rice base"]},
+  {h:"Need it cheaper?",  opts:["Cheaper","Lower fees","Faster delivery","Find me a deal","Compare these stores: Souvla, Goop, Ebiko"]}
 ];
 const DS=[
   {h:"What's the occasion?",           opts:["Quick lunch","Dinner at home","Impressing someone","Late night craving"]},
@@ -71,7 +71,7 @@ const DS=[
   {h:"Any dietary needs?",             opts:["None","Vegetarian","Gluten-free","Dairy-free","Low calorie"]}
 ];
 
-let mi=0, di=0, deep=false, showSkeleton=false, hidePill=false;
+let mi=0, di=0, deep=false, showSkeleton=false, hidePill=false, tooltipText='Consumer takes a few actions';
 const saved=[];
 const stepHistory=[];
 const N=()=>document.getElementById('N');
@@ -136,28 +136,27 @@ function showC(){
   }
 
   if(showSkeleton){
-    // 3 skeleton carousels with varied title bar widths
-    [160, 118, 144].forEach(w=>{
-      const s=buildSkeleton(w);
-      s.style.marginTop='10px';
+    // 3 carousels always appear immediately
+    [160,118,144].forEach(w=>{
+      const s=buildSkeleton(w);s.style.marginTop='10px';
       wrap.appendChild(s);
     });
 
-    // tooltip + pill — hidden, animate in after delay
+    // tooltip + pill
     const bottom=document.createElement('div');
     bottom.id='BOTTOM';
     bottom.style.cssText='display:flex;flex-direction:column;gap:8px;margin-top:14px;';
 
     const tip=document.createElement('div');
     tip.className='proto-tip fade-in-up';
-    tip.innerHTML='&#128070; Consumer takes a few actions';
+    tip.innerHTML='&#128070; '+tooltipText;
+    tooltipText='Consumer takes a few actions';
     bottom.appendChild(tip);
 
     const pillWrap=document.createElement('div');
     pillWrap.className='fade-in-up';
     pillWrap.style.cssText='display:flex;flex-direction:column;gap:6px;';
 
-    // pre-selected picks with x buttons
     if(saved.length){
       const sr=document.createElement('div');sr.style.cssText='display:flex;flex-wrap:wrap;gap:4px;';
       saved.forEach(s=>{
@@ -182,7 +181,6 @@ function showC(){
     hidePill=false;
 
     if(skipAnim){
-      // return from dive deep — show pill immediately, no tooltip, no animation
       pillWrap.classList.remove('fade-in-up');
       pillWrap.style.opacity='1';
       wrap.appendChild(pillWrap);
@@ -190,6 +188,16 @@ function showC(){
       wrap.appendChild(bottom);
       setTimeout(()=>tip.classList.add('go'), 700);
       setTimeout(()=>pillWrap.classList.add('go'), 1050);
+    }
+
+    // 2 extra carousels appear BELOW the pill after Q2
+    if(mi>=2){
+      [136,152].forEach((w,i)=>{
+        const s=buildSkeleton(w);
+        s.style.cssText='margin-top:10px;opacity:0;transform:translateY(14px);transition:opacity 0.4s ease-out,transform 0.4s ease-out;';
+        wrap.appendChild(s);
+        setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';}, 1500+(i*350));
+      });
     }
 
     N().appendChild(wrap);
@@ -403,7 +411,13 @@ function showDiveDeep(){
   const backBtn=document.createElement('button');
   backBtn.style.cssText='display:block;margin-bottom:10px;background:none;border:none;font-size:13px;font-weight:600;color:#555;cursor:pointer;font-family:inherit;padding:0;';
   backBtn.textContent='← Back to feed';
-  backBtn.onclick=()=>{showSkeleton=true;hidePill=true;showC();};
+  backBtn.onclick=()=>{
+    mi=Math.max(mi,2);
+    tooltipText='Consumer took more actions';
+    showSkeleton=true;
+    hidePill=false;
+    showC();
+  };
   N().appendChild(backBtn);
 
   N().appendChild(outer);
